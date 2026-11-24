@@ -1,0 +1,16 @@
+<resources>
+    <string name="app_name">Comercio Bauta</string>
+    <string name="nav_home">Inicio</string>
+    <string name="nav_actors">Actores</string>
+    <string name="nav_locales">Locales</string>
+    <string name="nav_settlements">Cobros</string>
+    <string name="nav_live">En Vivo</string>
+    <string name="cd_bauta_banner">Ilustración comercial de Comercio Municipal Bauta</string>
+    <string name="cd_add_actor">Registrar actor económico</string>
+    <string name="cd_add_locale">Registrar local</string>
+    <string name="cd_add_settlement">Registrar liquidación mensual</string>
+    <string name="cd_previous_month">Mes anterior</string>
+    <string name="cd_next_month">Mes siguiente</string>
+    <string name="cd_manager_users">Usuarios locales del Manager</string>
+    <string name="cd_configure_payment">Configurar cuenta bancaria y QR Transfermóvil</string>
+</resources>

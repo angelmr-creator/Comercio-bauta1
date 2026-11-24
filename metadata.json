@@ -1,0 +1,6 @@
+{
+  "name": "Comercio Bauta",
+  "description": "Gestión de locales arrendados y liquidación mensual (30% de utilidad neta más alquiler de espacio) para Comercio Municipal Bauta.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

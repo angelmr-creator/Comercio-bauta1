@@ -1,0 +1,547 @@
+{
+  "entities": {
+    "LocaleSpace": {
+      "title": "LocaleSpace",
+      "description": "Local comercial o espacio arrendado por Comercio Municipal Bauta.",
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "string",
+          "description": "Código identificador del local (ej. LOC-01)."
+        },
+        "name": {
+          "type": "string",
+          "description": "Nombre comercial o denominación del local."
+        },
+        "address": {
+          "type": "string",
+          "description": "Dirección física del local en Bauta."
+        },
+        "areaSqm": {
+          "type": "number",
+          "description": "Superficie del local en metros cuadrados."
+        },
+        "monthlyRentCents": {
+          "type": "integer",
+          "description": "Monto base del alquiler mensual de espacio en centavos."
+        },
+        "status": {
+          "type": "string",
+          "enum": ["DISPONIBLE", "ARRENDADO", "MANTENIMIENTO"],
+          "description": "Estado actual de ocupación del local."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Marca temporal del servidor al crear el registro (FieldValue.serverTimestamp)."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Marca temporal del servidor al actualizar el registro (FieldValue.serverTimestamp)."
+        }
+      },
+      "required": ["code", "name", "monthlyRentCents", "status", "createdAt", "updatedAt"]
+    },
+    "EconomicActor": {
+      "title": "EconomicActor",
+      "description": "Actor económico (TCP, MIPYME, CNA) que arrienda un local municipal.",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Nombre del negocio o actor económico."
+        },
+        "legalType": {
+          "type": "string",
+          "enum": ["TCP", "MIPYME", "CNA", "PDL", "OTRO"],
+          "description": "Forma de gestión económica en Cuba (TCP, MIPYME, CNA, PDL, Otro)."
+        },
+        "representativeName": {
+          "type": "string",
+          "description": "Nombre del titular o representante legal."
+        },
+        "phone": {
+          "type": "string",
+          "description": "Teléfono de contacto."
+        },
+        "taxId": {
+          "type": "string",
+          "description": "NIT o identificación fiscal."
+        },
+        "actorEmail": {
+          "type": "string",
+          "description": "Correo Google del actor para vincular sus operaciones en su teléfono."
+        },
+        "localeId": {
+          "type": "string",
+          "description": "ID del local asignado (vacío si no tiene local asignado)."
+        },
+        "localeName": {
+          "type": "string",
+          "description": "Nombre/código del local asignado."
+        },
+        "monthlyRentCents": {
+          "type": "integer",
+          "description": "Alquiler mensual acordado en centavos."
+        },
+        "profitSharePercent": {
+          "type": "integer",
+          "description": "Porcentaje de aporte sobre utilidad neta (por defecto 30%)."
+        },
+        "active": {
+          "type": "boolean",
+          "description": "Indica si el contrato del actor económico está activo."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Marca temporal del servidor al crear (FieldValue.serverTimestamp)."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Marca temporal del servidor al actualizar (FieldValue.serverTimestamp)."
+        }
+      },
+      "required": [
+        "name",
+        "legalType",
+        "representativeName",
+        "monthlyRentCents",
+        "profitSharePercent",
+        "active",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "MonthlySettlement": {
+      "title": "MonthlySettlement",
+      "description": "Liquidación mensual de un actor económico: 30% de utilidad neta más alquiler de espacio.",
+      "type": "object",
+      "properties": {
+        "actorId": {
+          "type": "string",
+          "description": "ID del actor económico."
+        },
+        "actorName": {
+          "type": "string",
+          "description": "Nombre del actor económico."
+        },
+        "localeId": {
+          "type": "string",
+          "description": "ID del local asociado."
+        },
+        "localeName": {
+          "type": "string",
+          "description": "Nombre/código del local asociado."
+        },
+        "periodYear": {
+          "type": "integer",
+          "description": "Año del período liquidado."
+        },
+        "periodMonth": {
+          "type": "integer",
+          "description": "Mes del período liquidado (1 a 12)."
+        },
+        "grossIncomeCents": {
+          "type": "integer",
+          "description": "Ingresos brutos declarados en centavos."
+        },
+        "operatingExpensesCents": {
+          "type": "integer",
+          "description": "Gastos operativos deducibles en centavos."
+        },
+        "netProfitCents": {
+          "type": "integer",
+          "description": "Utilidad neta del período en centavos."
+        },
+        "profitSharePercent": {
+          "type": "integer",
+          "description": "Porcentaje aplicado sobre utilidad neta (por defecto 30)."
+        },
+        "profitShareCents": {
+          "type": "integer",
+          "description": "Monto calculado del 30% sobre utilidad neta en centavos."
+        },
+        "spaceRentCents": {
+          "type": "integer",
+          "description": "Monto del alquiler de espacio del período en centavos."
+        },
+        "totalDueCents": {
+          "type": "integer",
+          "description": "Total a pagar (aporte sobre utilidad + alquiler de espacio) en centavos."
+        },
+        "paidCents": {
+          "type": "integer",
+          "description": "Monto cobrado hasta la fecha en centavos."
+        },
+        "paymentStatus": {
+          "type": "string",
+          "enum": ["PENDIENTE", "PARCIAL", "PAGADO"],
+          "description": "Estado del cobro."
+        },
+        "declaredBy": {
+          "type": "string",
+          "enum": ["DIRECTOR", "ACTOR"],
+          "description": "Origen de la declaración (Manager Director o Portal Actor)."
+        },
+        "paymentChannel": {
+          "type": "string",
+          "enum": ["NO_DEFINIDO", "TRANSFERENCIA", "QR_LINK"],
+          "description": "Vía digital del pago (exclusivamente transferencia bancaria o enlace QR)."
+        },
+        "paymentReference": {
+          "type": "string",
+          "description": "Número de operación o referencia de la transferencia o pago QR."
+        },
+        "notes": {
+          "type": "string",
+          "description": "Observaciones de la liquidación."
+        },
+        "paidAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Marca temporal del servidor cuando se registra el cobro (FieldValue.serverTimestamp)."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Marca temporal del servidor al crear (FieldValue.serverTimestamp)."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Marca temporal del servidor al actualizar (FieldValue.serverTimestamp)."
+        }
+      },
+      "required": [
+        "actorId",
+        "actorName",
+        "periodYear",
+        "periodMonth",
+        "grossIncomeCents",
+        "operatingExpensesCents",
+        "netProfitCents",
+        "profitSharePercent",
+        "profitShareCents",
+        "spaceRentCents",
+        "totalDueCents",
+        "paidCents",
+        "paymentStatus",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "PaymentConfig": {
+      "title": "PaymentConfig",
+      "description": "Configuración de cuenta bancaria y enlace de código QR para cobros digitales de Comercio Bauta.",
+      "type": "object",
+      "properties": {
+        "bankName": {
+          "type": "string",
+          "description": "Nombre del banco (ej. BANDEC, BPA, Metropolitano)."
+        },
+        "bankAccount": {
+          "type": "string",
+          "description": "Número de cuenta bancaria o tarjeta CUP receptora."
+        },
+        "accountHolder": {
+          "type": "string",
+          "description": "Titular de la cuenta (Empresa Municipal de Comercio Bauta)."
+        },
+        "qrPaymentUrl": {
+          "type": "string",
+          "description": "Enlace de pago mediante código QR."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Marca temporal de última actualización (FieldValue.serverTimestamp)."
+        }
+      },
+      "required": ["bankName", "bankAccount", "accountHolder", "qrPaymentUrl", "updatedAt"]
+    },
+    "CloudWorkspace": {
+      "title": "CloudWorkspace",
+      "description": "Espacio compartido en la nube de Comercio Municipal Bauta para sincronizar operaciones, liquidaciones, pagos y datos bancarios entre dispositivos.",
+      "type": "object",
+      "properties": {
+        "ownerId": {
+          "type": "string",
+          "description": "UID del propietario del espacio."
+        },
+        "name": {
+          "type": "string",
+          "description": "Nombre del espacio de trabajo municipal."
+        },
+        "bankName": {
+          "type": "string",
+          "description": "Banco o pasarela receptora (ej. BANDEC, BPA, Metropolitano)."
+        },
+        "bankAccount": {
+          "type": "string",
+          "description": "Cuenta bancaria o tarjeta CUP de la empresa."
+        },
+        "accountHolder": {
+          "type": "string",
+          "description": "Entidad titular de la cuenta."
+        },
+        "qrPaymentUrl": {
+          "type": "string",
+          "description": "Enlace o cadena QR Transfermóvil / MiTransfer."
+        },
+        "memberUids": {
+          "type": "array",
+          "description": "Lista acotada de UIDs vinculados al espacio."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Marca temporal del servidor al crear el espacio."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Marca temporal del servidor al actualizar el espacio."
+        }
+      },
+      "required": ["ownerId", "name", "bankName", "bankAccount", "accountHolder", "qrPaymentUrl", "memberUids", "createdAt", "updatedAt"]
+    },
+    "CloudWorkspaceActor": {
+      "title": "CloudWorkspaceActor",
+      "description": "Perfil de actor económico sincronizado dentro del espacio compartido de Comercio Bauta.",
+      "type": "object",
+      "properties": {
+        "workspaceId": { "type": "string", "description": "ID del espacio compartido." },
+        "ownerId": { "type": "string", "description": "UID del propietario del espacio." },
+        "createdByUid": { "type": "string", "description": "UID que registró el negocio." },
+        "actorEmail": { "type": "string", "description": "Correo Google opcional del actor." },
+        "name": { "type": "string", "description": "Nombre del negocio." },
+        "legalType": { "type": "string", "enum": ["TCP", "MIPYME", "CNA", "PDL", "OTRO"] },
+        "representativeName": { "type": "string", "description": "Titular o representante." },
+        "phone": { "type": "string" },
+        "taxId": { "type": "string" },
+        "localeId": { "type": "string" },
+        "localeName": { "type": "string" },
+        "monthlyRentCents": { "type": "integer" },
+        "profitSharePercent": { "type": "integer" },
+        "active": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": [
+        "workspaceId",
+        "ownerId",
+        "createdByUid",
+        "name",
+        "legalType",
+        "representativeName",
+        "monthlyRentCents",
+        "profitSharePercent",
+        "active",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "CloudWorkspaceSettlement": {
+      "title": "CloudWorkspaceSettlement",
+      "description": "Liquidación mensual sincronizada en el espacio compartido para visibilidad en tiempo real y resumen mensual.",
+      "type": "object",
+      "properties": {
+        "workspaceId": { "type": "string" },
+        "ownerId": { "type": "string" },
+        "createdByUid": { "type": "string" },
+        "actorUid": { "type": "string" },
+        "actorEmail": { "type": "string" },
+        "actorId": { "type": "string" },
+        "actorName": { "type": "string" },
+        "localeId": { "type": "string" },
+        "localeName": { "type": "string" },
+        "periodYear": { "type": "integer" },
+        "periodMonth": { "type": "integer" },
+        "grossIncomeCents": { "type": "integer" },
+        "operatingExpensesCents": { "type": "integer" },
+        "netProfitCents": { "type": "integer" },
+        "profitSharePercent": { "type": "integer" },
+        "profitShareCents": { "type": "integer" },
+        "spaceRentCents": { "type": "integer" },
+        "totalDueCents": { "type": "integer" },
+        "paidCents": { "type": "integer" },
+        "paymentStatus": { "type": "string", "enum": ["PENDIENTE", "PARCIAL", "PAGADO"] },
+        "declaredBy": { "type": "string", "enum": ["DIRECTOR", "ACTOR"] },
+        "paymentChannel": { "type": "string", "enum": ["NO_DEFINIDO", "TRANSFERENCIA", "QR_LINK"] },
+        "paymentReference": { "type": "string" },
+        "notes": { "type": "string" },
+        "paidAt": { "type": "string", "format": "date-time" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": [
+        "workspaceId",
+        "ownerId",
+        "createdByUid",
+        "actorId",
+        "actorName",
+        "periodYear",
+        "periodMonth",
+        "grossIncomeCents",
+        "operatingExpensesCents",
+        "netProfitCents",
+        "profitSharePercent",
+        "profitShareCents",
+        "spaceRentCents",
+        "totalDueCents",
+        "paidCents",
+        "paymentStatus",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "CloudPaymentEvent": {
+      "title": "CloudPaymentEvent",
+      "description": "Evento de pago digital Transfermóvil sincronizado en tiempo real entre dispositivos.",
+      "type": "object",
+      "properties": {
+        "workspaceId": {
+          "type": "string",
+          "description": "ID del espacio de trabajo municipal."
+        },
+        "ownerId": {
+          "type": "string",
+          "description": "UID del propietario del espacio."
+        },
+        "memberUids": {
+          "type": "array",
+          "description": "Lista opcional denormalizada de miembros."
+        },
+        "createdByUid": {
+          "type": "string",
+          "description": "UID de Firebase Auth del usuario que reportó el evento."
+        },
+        "settlementId": {
+          "type": "string",
+          "description": "ID de la liquidación asociada."
+        },
+        "actorUid": {
+          "type": "string",
+          "description": "UID del actor destinatario si fue registrado por la dirección."
+        },
+        "actorEmail": {
+          "type": "string",
+          "description": "Correo Google del actor para sincronización hacia su teléfono."
+        },
+        "actorId": {
+          "type": "string",
+          "description": "ID del actor económico."
+        },
+        "actorName": {
+          "type": "string",
+          "description": "Nombre del actor económico."
+        },
+        "periodYear": {
+          "type": "integer",
+          "description": "Año del período."
+        },
+        "periodMonth": {
+          "type": "integer",
+          "description": "Mes del período (1-12)."
+        },
+        "amountCents": {
+          "type": "integer",
+          "description": "Monto pagado en centavos de CUP."
+        },
+        "paymentChannel": {
+          "type": "string",
+          "enum": ["NO_DEFINIDO", "TRANSFERENCIA", "QR_LINK"],
+          "description": "Canal Transfermóvil."
+        },
+        "paymentReference": {
+          "type": "string",
+          "description": "Código de operación o referencia bancaria."
+        },
+        "reportedBy": {
+          "type": "string",
+          "enum": ["DIRECTOR", "ACTOR"],
+          "description": "Origen del reporte."
+        },
+        "verificationStatus": {
+          "type": "string",
+          "enum": ["POR_VERIFICAR", "CONFIRMADO", "OBSERVADO"],
+          "description": "Estado de verificación."
+        },
+        "verifiedByUsername": {
+          "type": "string",
+          "description": "Usuario que verificó el pago."
+        },
+        "note": {
+          "type": "string",
+          "description": "Nota o detalle de conciliación SMS."
+        },
+        "clientCreatedAtMillis": {
+          "type": "integer",
+          "description": "Marca temporal local de registro para ordenamiento offline-first."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Marca temporal del servidor al crear."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Marca temporal del servidor al actualizar."
+        }
+      },
+      "required": [
+        "workspaceId",
+        "ownerId",
+        "createdByUid",
+        "actorName",
+        "periodYear",
+        "periodMonth",
+        "amountCents",
+        "paymentChannel",
+        "reportedBy",
+        "verificationStatus",
+        "clientCreatedAtMillis",
+        "createdAt",
+        "updatedAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/users/{userId}/locales/{localeId}": {
+      "schema": { "$ref": "#/entities/LocaleSpace" },
+      "description": "Locales comerciales administrados por el usuario."
+    },
+    "/users/{userId}/actors/{actorId}": {
+      "schema": { "$ref": "#/entities/EconomicActor" },
+      "description": "Actores económicos registrados por el usuario."
+    },
+    "/users/{userId}/settlements/{settlementId}": {
+      "schema": { "$ref": "#/entities/MonthlySettlement" },
+      "description": "Liquidaciones mensuales privadas del usuario."
+    },
+    "/users/{userId}/config/{configId}": {
+      "schema": { "$ref": "#/entities/PaymentConfig" },
+      "description": "Configuración de cobros digitales (cuenta bancaria y link QR)."
+    },
+    "/workspaces/{workspaceId}": {
+      "schema": { "$ref": "#/entities/CloudWorkspace" },
+      "description": "Espacio municipal compartido para sincronización en tiempo real en Cuba."
+    },
+    "/workspaces/{workspaceId}/actors/{actorId}": {
+      "schema": { "$ref": "#/entities/CloudWorkspaceActor" },
+      "description": "Actores económicos vinculados al espacio compartido."
+    },
+    "/workspaces/{workspaceId}/settlements/{settlementId}": {
+      "schema": { "$ref": "#/entities/CloudWorkspaceSettlement" },
+      "description": "Liquidaciones mensuales compartidas entre actores y dirección."
+    },
+    "/workspaces/{workspaceId}/payment_events/{eventId}": {
+      "schema": { "$ref": "#/entities/CloudPaymentEvent" },
+      "description": "Pagos reportados por actores y verificados en vivo en la nube."
+    }
+  }
+}

@@ -1,0 +1,484 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global default-deny safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isRootAdmin() {
+      return isSignedIn() &&
+             'email_verified' in request.auth.token &&
+             request.auth.token.email_verified == true &&
+             'email' in request.auth.token &&
+             request.auth.token.email == 'amena4430@gmail.com';
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isVerifiedMatchingEmail(docEmail) {
+      return isSignedIn() &&
+             'email_verified' in request.auth.token &&
+             request.auth.token.email_verified == true &&
+             'email' in request.auth.token &&
+             docEmail is string &&
+             docEmail.size() > 0 &&
+             docEmail == request.auth.token.email;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidTimestampField(ts) {
+      return ts is timestamp && ts <= request.time;
+    }
+
+    function isValidLocaleSpace(data) {
+      return data.code is string && data.code.size() >= 1 && data.code.size() <= 30 &&
+             data.name is string && data.name.size() >= 1 && data.name.size() <= 80 &&
+             (!('address' in data) || (data.address is string && data.address.size() <= 160)) &&
+             (!('areaSqm' in data) || (data.areaSqm is number && data.areaSqm >= 0 && data.areaSqm <= 100000)) &&
+             data.monthlyRentCents is int && data.monthlyRentCents >= 0 && data.monthlyRentCents <= 100000000000 &&
+             data.status in ['DISPONIBLE', 'ARRENDADO', 'MANTENIMIENTO'] &&
+             isValidTimestampField(data.createdAt) &&
+             isValidTimestampField(data.updatedAt);
+    }
+
+    function isValidEconomicActor(data) {
+      return data.name is string && data.name.size() >= 1 && data.name.size() <= 100 &&
+             data.legalType in ['TCP', 'MIPYME', 'CNA', 'PDL', 'OTRO'] &&
+             data.representativeName is string && data.representativeName.size() >= 1 && data.representativeName.size() <= 100 &&
+             (!('phone' in data) || (data.phone is string && data.phone.size() <= 30)) &&
+             (!('taxId' in data) || (data.taxId is string && data.taxId.size() <= 40)) &&
+             (!('localeId' in data) || (data.localeId is string && data.localeId.size() <= 128)) &&
+             (!('localeName' in data) || (data.localeName is string && data.localeName.size() <= 100)) &&
+             data.monthlyRentCents is int && data.monthlyRentCents >= 0 && data.monthlyRentCents <= 100000000000 &&
+             data.profitSharePercent is int && data.profitSharePercent >= 0 && data.profitSharePercent <= 100 &&
+             data.active is bool &&
+             isValidTimestampField(data.createdAt) &&
+             isValidTimestampField(data.updatedAt);
+    }
+
+    function isValidMonthlySettlement(data) {
+      return data.actorId is string && data.actorId.size() >= 1 && data.actorId.size() <= 128 &&
+             data.actorName is string && data.actorName.size() >= 1 && data.actorName.size() <= 100 &&
+             (!('localeId' in data) || (data.localeId is string && data.localeId.size() <= 128)) &&
+             (!('localeName' in data) || (data.localeName is string && data.localeName.size() <= 100)) &&
+             data.periodYear is int && data.periodYear >= 2020 && data.periodYear <= 2100 &&
+             data.periodMonth is int && data.periodMonth >= 1 && data.periodMonth <= 12 &&
+             data.grossIncomeCents is int && data.grossIncomeCents >= 0 && data.grossIncomeCents <= 100000000000 &&
+             data.operatingExpensesCents is int && data.operatingExpensesCents >= 0 && data.operatingExpensesCents <= 100000000000 &&
+             data.netProfitCents is int && data.netProfitCents >= -100000000000 && data.netProfitCents <= 100000000000 &&
+             data.profitSharePercent is int && data.profitSharePercent >= 0 && data.profitSharePercent <= 100 &&
+             data.profitShareCents is int && data.profitShareCents >= 0 && data.profitShareCents <= 100000000000 &&
+             data.spaceRentCents is int && data.spaceRentCents >= 0 && data.spaceRentCents <= 100000000000 &&
+             data.totalDueCents is int && data.totalDueCents >= 0 && data.totalDueCents <= 200000000000 &&
+             data.paidCents is int && data.paidCents >= 0 && data.paidCents <= 200000000000 &&
+             data.paymentStatus in ['PENDIENTE', 'PARCIAL', 'PAGADO'] &&
+             (!('declaredBy' in data) || data.declaredBy in ['DIRECTOR', 'ACTOR']) &&
+             (!('paymentChannel' in data) || data.paymentChannel in ['NO_DEFINIDO', 'TRANSFERENCIA', 'QR_LINK']) &&
+             (!('paymentReference' in data) || (data.paymentReference is string && data.paymentReference.size() <= 80)) &&
+             (!('notes' in data) || (data.notes is string && data.notes.size() <= 300)) &&
+             (!('paidAt' in data) || isValidTimestampField(data.paidAt)) &&
+             isValidTimestampField(data.createdAt) &&
+             isValidTimestampField(data.updatedAt);
+    }
+
+    function isValidPaymentConfig(data) {
+      return data.bankName is string && data.bankName.size() <= 80 &&
+             data.bankAccount is string && data.bankAccount.size() <= 80 &&
+             data.accountHolder is string && data.accountHolder.size() <= 120 &&
+             data.qrPaymentUrl is string && data.qrPaymentUrl.size() <= 300 &&
+             isValidTimestampField(data.updatedAt);
+    }
+
+    match /users/{userId}/locales/{localeId} {
+      allow list: if isOwner(userId);
+      allow get: if isOwner(userId) && isValidId(localeId);
+      allow create: if isOwner(userId) &&
+                       isValidId(localeId) &&
+                       incoming().keys().hasAll(['code', 'name', 'monthlyRentCents', 'status', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['code', 'name', 'address', 'areaSqm', 'monthlyRentCents', 'status', 'createdAt', 'updatedAt']) &&
+                       isValidLocaleSpace(incoming());
+      allow update: if isOwner(userId) &&
+                       isValidId(localeId) &&
+                       isValidLocaleSpace(incoming()) &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['code', 'name', 'address', 'areaSqm', 'monthlyRentCents', 'status', 'updatedAt']);
+      allow delete: if isOwner(userId) && isValidId(localeId);
+    }
+
+    match /users/{userId}/actors/{actorId} {
+      allow list: if isOwner(userId);
+      allow get: if isOwner(userId) && isValidId(actorId);
+      allow create: if isOwner(userId) &&
+                       isValidId(actorId) &&
+                       incoming().keys().hasAll(['name', 'legalType', 'representativeName', 'monthlyRentCents', 'profitSharePercent', 'active', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['name', 'legalType', 'representativeName', 'phone', 'taxId', 'localeId', 'localeName', 'monthlyRentCents', 'profitSharePercent', 'active', 'createdAt', 'updatedAt']) &&
+                       isValidEconomicActor(incoming());
+      allow update: if isOwner(userId) &&
+                       isValidId(actorId) &&
+                       isValidEconomicActor(incoming()) &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['name', 'legalType', 'representativeName', 'phone', 'taxId', 'localeId', 'localeName', 'monthlyRentCents', 'profitSharePercent', 'active', 'updatedAt']);
+      allow delete: if isOwner(userId) && isValidId(actorId);
+    }
+
+    match /users/{userId}/settlements/{settlementId} {
+      allow list: if isOwner(userId);
+      allow get: if isOwner(userId) && isValidId(settlementId);
+      allow create: if isOwner(userId) &&
+                       isValidId(settlementId) &&
+                       incoming().keys().hasAll([
+                         'actorId', 'actorName', 'periodYear', 'periodMonth',
+                         'grossIncomeCents', 'operatingExpensesCents', 'netProfitCents',
+                         'profitSharePercent', 'profitShareCents', 'spaceRentCents',
+                         'totalDueCents', 'paidCents', 'paymentStatus',
+                         'createdAt', 'updatedAt'
+                       ]) &&
+                       incoming().keys().hasOnly([
+                         'actorId', 'actorName', 'localeId', 'localeName',
+                         'periodYear', 'periodMonth',
+                         'grossIncomeCents', 'operatingExpensesCents', 'netProfitCents',
+                         'profitSharePercent', 'profitShareCents', 'spaceRentCents',
+                         'totalDueCents', 'paidCents', 'paymentStatus',
+                         'declaredBy', 'paymentChannel', 'paymentReference',
+                         'notes', 'paidAt', 'createdAt', 'updatedAt'
+                       ]) &&
+                       isValidMonthlySettlement(incoming());
+      allow update: if isOwner(userId) &&
+                       isValidId(settlementId) &&
+                       isValidMonthlySettlement(incoming()) &&
+                       incoming().createdAt == existing().createdAt &&
+                       (
+                         incoming().diff(existing()).affectedKeys().hasOnly([
+                           'actorId', 'actorName', 'localeId', 'localeName',
+                           'periodYear', 'periodMonth',
+                           'grossIncomeCents', 'operatingExpensesCents', 'netProfitCents',
+                           'profitSharePercent', 'profitShareCents', 'spaceRentCents',
+                           'totalDueCents', 'paidCents', 'paymentStatus',
+                           'declaredBy', 'paymentChannel', 'paymentReference',
+                           'notes', 'paidAt', 'updatedAt'
+                         ]) ||
+                         incoming().diff(existing()).affectedKeys().hasOnly([
+                           'paidCents', 'paymentStatus', 'paymentChannel', 'paymentReference',
+                           'paidAt', 'updatedAt'
+                         ])
+                       );
+      allow delete: if isOwner(userId) && isValidId(settlementId);
+    }
+
+    match /users/{userId}/config/{configId} {
+      allow list: if isOwner(userId);
+      allow get: if isOwner(userId) && isValidId(configId);
+      allow create, update: if isOwner(userId) &&
+                               isValidId(configId) &&
+                               incoming().keys().hasAll(['bankName', 'bankAccount', 'accountHolder', 'qrPaymentUrl', 'updatedAt']) &&
+                               incoming().keys().hasOnly(['bankName', 'bankAccount', 'accountHolder', 'qrPaymentUrl', 'updatedAt']) &&
+                               isValidPaymentConfig(incoming());
+      allow delete: if isOwner(userId) && isValidId(configId);
+    }
+
+    function isValidMemberUids(list) {
+      return list is list &&
+             list.size() >= 1 &&
+             list.size() <= 100 &&
+             list[0] is string;
+    }
+
+    function isValidCloudWorkspace(data) {
+      return data.ownerId is string && data.ownerId.size() >= 1 && data.ownerId.size() <= 128 &&
+             data.name is string && data.name.size() >= 1 && data.name.size() <= 100 &&
+             data.bankName is string && data.bankName.size() <= 80 &&
+             data.bankAccount is string && data.bankAccount.size() <= 80 &&
+             data.accountHolder is string && data.accountHolder.size() <= 120 &&
+             data.qrPaymentUrl is string && data.qrPaymentUrl.size() <= 300 &&
+             isValidMemberUids(data.memberUids) &&
+             data.ownerId in data.memberUids &&
+             isValidTimestampField(data.createdAt) &&
+             isValidTimestampField(data.updatedAt);
+    }
+
+    function isValidCloudWorkspaceActor(data) {
+      return data.workspaceId is string && data.workspaceId.size() >= 1 && data.workspaceId.size() <= 128 &&
+             data.ownerId is string && data.ownerId.size() >= 1 && data.ownerId.size() <= 128 &&
+             data.createdByUid is string && data.createdByUid.size() >= 1 && data.createdByUid.size() <= 128 &&
+             (!('actorEmail' in data) || (data.actorEmail is string && data.actorEmail.size() <= 120)) &&
+             isValidEconomicActor(data);
+    }
+
+    function isValidCloudWorkspaceSettlement(data) {
+      return data.workspaceId is string && data.workspaceId.size() >= 1 && data.workspaceId.size() <= 128 &&
+             data.ownerId is string && data.ownerId.size() >= 1 && data.ownerId.size() <= 128 &&
+             data.createdByUid is string && data.createdByUid.size() >= 1 && data.createdByUid.size() <= 128 &&
+             (!('actorUid' in data) || (data.actorUid is string && data.actorUid.size() <= 128)) &&
+             (!('actorEmail' in data) || (data.actorEmail is string && data.actorEmail.size() <= 120)) &&
+             isValidMonthlySettlement(data);
+    }
+
+    function isValidCloudPaymentEvent(data) {
+      return data.workspaceId is string && data.workspaceId.size() >= 1 && data.workspaceId.size() <= 128 &&
+             data.ownerId is string && data.ownerId.size() >= 1 && data.ownerId.size() <= 128 &&
+             (!('memberUids' in data) || isValidMemberUids(data.memberUids)) &&
+             data.createdByUid is string && data.createdByUid.size() >= 1 && data.createdByUid.size() <= 128 &&
+             (!('settlementId' in data) || (data.settlementId is string && data.settlementId.size() <= 128)) &&
+             (!('actorUid' in data) || (data.actorUid is string && data.actorUid.size() <= 128)) &&
+             (!('actorEmail' in data) || (data.actorEmail is string && data.actorEmail.size() <= 120)) &&
+             (!('actorId' in data) || (data.actorId is string && data.actorId.size() <= 128)) &&
+             data.actorName is string && data.actorName.size() >= 1 && data.actorName.size() <= 120 &&
+             data.periodYear is int && data.periodYear >= 2020 && data.periodYear <= 2100 &&
+             data.periodMonth is int && data.periodMonth >= 1 && data.periodMonth <= 12 &&
+             data.amountCents is int && data.amountCents >= 0 && data.amountCents <= 200000000000 &&
+             data.paymentChannel in ['NO_DEFINIDO', 'TRANSFERENCIA', 'QR_LINK'] &&
+             (!('paymentReference' in data) || (data.paymentReference is string && data.paymentReference.size() <= 80)) &&
+             data.reportedBy in ['DIRECTOR', 'ACTOR'] &&
+             data.verificationStatus in ['POR_VERIFICAR', 'CONFIRMADO', 'OBSERVADO'] &&
+             (!('verifiedByUsername' in data) || (data.verifiedByUsername is string && data.verifiedByUsername.size() <= 80)) &&
+             (!('note' in data) || (data.note is string && data.note.size() <= 300)) &&
+             data.clientCreatedAtMillis is int && data.clientCreatedAtMillis >= 0 &&
+             isValidTimestampField(data.createdAt) &&
+             isValidTimestampField(data.updatedAt);
+    }
+
+    match /workspaces/{workspaceId} {
+      allow list: if isSignedIn() && (isRootAdmin() || existing().ownerId == request.auth.uid || request.auth.uid in existing().memberUids);
+      allow get: if isSignedIn() && isValidId(workspaceId);
+      allow create: if isSignedIn() &&
+                       isValidId(workspaceId) &&
+                       incoming().ownerId == request.auth.uid &&
+                       incoming().memberUids.size() == 1 &&
+                       incoming().memberUids[0] == request.auth.uid &&
+                       incoming().keys().hasAll(['ownerId', 'name', 'bankName', 'bankAccount', 'accountHolder', 'qrPaymentUrl', 'memberUids', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['ownerId', 'name', 'bankName', 'bankAccount', 'accountHolder', 'qrPaymentUrl', 'memberUids', 'createdAt', 'updatedAt']) &&
+                       isValidCloudWorkspace(incoming());
+      allow update: if isSignedIn() &&
+                       isValidId(workspaceId) &&
+                       isValidCloudWorkspace(incoming()) &&
+                       incoming().ownerId == existing().ownerId &&
+                       incoming().createdAt == existing().createdAt &&
+                       (
+                         (
+                           (existing().ownerId == request.auth.uid || isRootAdmin()) &&
+                           incoming().diff(existing()).affectedKeys().hasOnly(['name', 'bankName', 'bankAccount', 'accountHolder', 'qrPaymentUrl', 'memberUids', 'updatedAt'])
+                         ) ||
+                         (
+                           incoming().diff(existing()).affectedKeys().hasOnly(['memberUids', 'updatedAt']) &&
+                           incoming().memberUids.hasAll(existing().memberUids) &&
+                           request.auth.uid in incoming().memberUids &&
+                           incoming().memberUids.size() <= existing().memberUids.size() + 1 &&
+                           incoming().memberUids.size() <= 100
+                         )
+                       );
+      allow delete: if isSignedIn() && isValidId(workspaceId) && (existing().ownerId == request.auth.uid || isRootAdmin());
+
+      match /actors/{actorId} {
+        allow list: if isSignedIn() && (
+          isRootAdmin() ||
+          existing().ownerId == request.auth.uid ||
+          existing().createdByUid == request.auth.uid ||
+          ('actorEmail' in existing() && isVerifiedMatchingEmail(existing().actorEmail))
+        );
+        allow get: if isSignedIn() && isValidId(workspaceId) && isValidId(actorId) && (
+          isRootAdmin() ||
+          existing().ownerId == request.auth.uid ||
+          existing().createdByUid == request.auth.uid ||
+          ('actorEmail' in existing() && isVerifiedMatchingEmail(existing().actorEmail))
+        );
+        allow create: if isSignedIn() &&
+                         isValidId(workspaceId) &&
+                         isValidId(actorId) &&
+                         incoming().workspaceId == workspaceId &&
+                         incoming().createdByUid == request.auth.uid &&
+                         incoming().keys().hasAll([
+                           'workspaceId', 'ownerId', 'createdByUid',
+                           'name', 'legalType', 'representativeName',
+                           'monthlyRentCents', 'profitSharePercent', 'active',
+                           'createdAt', 'updatedAt'
+                         ]) &&
+                         incoming().keys().hasOnly([
+                           'workspaceId', 'ownerId', 'createdByUid', 'actorEmail',
+                           'name', 'legalType', 'representativeName', 'phone', 'taxId',
+                           'localeId', 'localeName', 'monthlyRentCents', 'profitSharePercent',
+                           'active', 'createdAt', 'updatedAt'
+                         ]) &&
+                         isValidCloudWorkspaceActor(incoming()) &&
+                         exists(/databases/$(database)/documents/workspaces/$(workspaceId)) &&
+                         incoming().ownerId == get(/databases/$(database)/documents/workspaces/$(workspaceId)).data.ownerId;
+        allow update: if isSignedIn() &&
+                         isValidId(workspaceId) &&
+                         isValidId(actorId) &&
+                         isValidCloudWorkspaceActor(incoming()) &&
+                         incoming().workspaceId == existing().workspaceId &&
+                         incoming().ownerId == existing().ownerId &&
+                         incoming().createdByUid == existing().createdByUid &&
+                         incoming().createdAt == existing().createdAt &&
+                         (
+                           (
+                             (existing().ownerId == request.auth.uid || isRootAdmin()) &&
+                             incoming().diff(existing()).affectedKeys().hasOnly([
+                               'actorEmail', 'name', 'legalType', 'representativeName',
+                               'phone', 'taxId', 'localeId', 'localeName',
+                               'monthlyRentCents', 'profitSharePercent', 'active', 'updatedAt'
+                             ])
+                           ) ||
+                           (
+                             (
+                               existing().createdByUid == request.auth.uid ||
+                               ('actorEmail' in existing() && isVerifiedMatchingEmail(existing().actorEmail))
+                             ) &&
+                             incoming().diff(existing()).affectedKeys().hasOnly([
+                               'actorEmail', 'name', 'legalType', 'representativeName', 'phone', 'taxId', 'updatedAt'
+                             ])
+                           )
+                         );
+        allow delete: if isSignedIn() && isValidId(workspaceId) && isValidId(actorId) && (existing().ownerId == request.auth.uid || isRootAdmin());
+      }
+
+      match /settlements/{settlementId} {
+        allow list: if isSignedIn() && (
+          isRootAdmin() ||
+          existing().ownerId == request.auth.uid ||
+          existing().createdByUid == request.auth.uid ||
+          ('actorUid' in existing() && existing().actorUid == request.auth.uid) ||
+          ('actorEmail' in existing() && isVerifiedMatchingEmail(existing().actorEmail))
+        );
+        allow get: if isSignedIn() && isValidId(workspaceId) && isValidId(settlementId) && (
+          isRootAdmin() ||
+          existing().ownerId == request.auth.uid ||
+          existing().createdByUid == request.auth.uid ||
+          ('actorUid' in existing() && existing().actorUid == request.auth.uid) ||
+          ('actorEmail' in existing() && isVerifiedMatchingEmail(existing().actorEmail))
+        );
+        allow create: if isSignedIn() &&
+                         isValidId(workspaceId) &&
+                         isValidId(settlementId) &&
+                         incoming().workspaceId == workspaceId &&
+                         incoming().createdByUid == request.auth.uid &&
+                         incoming().keys().hasAll([
+                           'workspaceId', 'ownerId', 'createdByUid',
+                           'actorId', 'actorName', 'periodYear', 'periodMonth',
+                           'grossIncomeCents', 'operatingExpensesCents', 'netProfitCents',
+                           'profitSharePercent', 'profitShareCents', 'spaceRentCents',
+                           'totalDueCents', 'paidCents', 'paymentStatus',
+                           'createdAt', 'updatedAt'
+                         ]) &&
+                         incoming().keys().hasOnly([
+                           'workspaceId', 'ownerId', 'createdByUid', 'actorUid', 'actorEmail',
+                           'actorId', 'actorName', 'localeId', 'localeName',
+                           'periodYear', 'periodMonth',
+                           'grossIncomeCents', 'operatingExpensesCents', 'netProfitCents',
+                           'profitSharePercent', 'profitShareCents', 'spaceRentCents',
+                           'totalDueCents', 'paidCents', 'paymentStatus',
+                           'declaredBy', 'paymentChannel', 'paymentReference',
+                           'notes', 'paidAt', 'createdAt', 'updatedAt'
+                         ]) &&
+                         isValidCloudWorkspaceSettlement(incoming()) &&
+                         exists(/databases/$(database)/documents/workspaces/$(workspaceId)) &&
+                         incoming().ownerId == get(/databases/$(database)/documents/workspaces/$(workspaceId)).data.ownerId &&
+                         (
+                           request.auth.uid == incoming().ownerId ||
+                           isRootAdmin() ||
+                           incoming().declaredBy == 'ACTOR'
+                         );
+        allow update: if isSignedIn() &&
+                         isValidId(workspaceId) &&
+                         isValidId(settlementId) &&
+                         isValidCloudWorkspaceSettlement(incoming()) &&
+                         incoming().workspaceId == existing().workspaceId &&
+                         incoming().ownerId == existing().ownerId &&
+                         incoming().createdByUid == existing().createdByUid &&
+                         incoming().createdAt == existing().createdAt &&
+                         (
+                           (
+                             (existing().ownerId == request.auth.uid || isRootAdmin()) &&
+                             incoming().diff(existing()).affectedKeys().hasOnly([
+                               'actorUid', 'actorEmail', 'actorId', 'actorName', 'localeId', 'localeName',
+                               'periodYear', 'periodMonth',
+                               'grossIncomeCents', 'operatingExpensesCents', 'netProfitCents',
+                               'profitSharePercent', 'profitShareCents', 'spaceRentCents',
+                               'totalDueCents', 'paidCents', 'paymentStatus',
+                               'declaredBy', 'paymentChannel', 'paymentReference',
+                               'notes', 'paidAt', 'updatedAt'
+                             ])
+                           ) ||
+                           (
+                             (
+                               existing().createdByUid == request.auth.uid ||
+                               ('actorUid' in existing() && existing().actorUid == request.auth.uid) ||
+                               ('actorEmail' in existing() && isVerifiedMatchingEmail(existing().actorEmail))
+                             ) &&
+                             incoming().declaredBy == 'ACTOR' &&
+                             incoming().diff(existing()).affectedKeys().hasOnly([
+                               'actorId', 'actorName', 'localeId', 'localeName',
+                               'periodYear', 'periodMonth',
+                               'grossIncomeCents', 'operatingExpensesCents', 'netProfitCents',
+                               'profitSharePercent', 'profitShareCents', 'spaceRentCents',
+                               'totalDueCents', 'paidCents', 'paymentStatus',
+                               'declaredBy', 'paymentChannel', 'paymentReference',
+                               'notes', 'paidAt', 'updatedAt'
+                             ])
+                           )
+                         );
+        allow delete: if isSignedIn() && isValidId(workspaceId) && isValidId(settlementId) && (existing().ownerId == request.auth.uid || isRootAdmin());
+      }
+
+      match /payment_events/{eventId} {
+        allow list: if isSignedIn() && (
+          isRootAdmin() ||
+          existing().ownerId == request.auth.uid ||
+          existing().createdByUid == request.auth.uid ||
+          ('actorUid' in existing() && existing().actorUid == request.auth.uid) ||
+          ('actorEmail' in existing() && isVerifiedMatchingEmail(existing().actorEmail))
+        );
+        allow get: if isSignedIn() && isValidId(workspaceId) && isValidId(eventId) && (
+          isRootAdmin() ||
+          existing().ownerId == request.auth.uid ||
+          existing().createdByUid == request.auth.uid ||
+          ('actorUid' in existing() && existing().actorUid == request.auth.uid) ||
+          ('actorEmail' in existing() && isVerifiedMatchingEmail(existing().actorEmail))
+        );
+        allow create: if isSignedIn() &&
+                         isValidId(workspaceId) &&
+                         isValidId(eventId) &&
+                         incoming().workspaceId == workspaceId &&
+                         incoming().createdByUid == request.auth.uid &&
+                         incoming().keys().hasAll(['workspaceId', 'ownerId', 'createdByUid', 'actorName', 'periodYear', 'periodMonth', 'amountCents', 'paymentChannel', 'reportedBy', 'verificationStatus', 'clientCreatedAtMillis', 'createdAt', 'updatedAt']) &&
+                         incoming().keys().hasOnly(['workspaceId', 'ownerId', 'memberUids', 'createdByUid', 'settlementId', 'actorUid', 'actorEmail', 'actorId', 'actorName', 'periodYear', 'periodMonth', 'amountCents', 'paymentChannel', 'paymentReference', 'reportedBy', 'verificationStatus', 'verifiedByUsername', 'note', 'clientCreatedAtMillis', 'createdAt', 'updatedAt']) &&
+                         isValidCloudPaymentEvent(incoming()) &&
+                         exists(/databases/$(database)/documents/workspaces/$(workspaceId)) &&
+                         incoming().ownerId == get(/databases/$(database)/documents/workspaces/$(workspaceId)).data.ownerId &&
+                         (
+                           request.auth.uid == incoming().ownerId ||
+                           isRootAdmin() ||
+                           (incoming().reportedBy == 'ACTOR' && incoming().verificationStatus == 'POR_VERIFICAR')
+                         );
+        allow update: if isSignedIn() &&
+                         isValidId(workspaceId) &&
+                         isValidId(eventId) &&
+                         (existing().ownerId == request.auth.uid || isRootAdmin()) &&
+                         isValidCloudPaymentEvent(incoming()) &&
+                         incoming().workspaceId == existing().workspaceId &&
+                         incoming().ownerId == existing().ownerId &&
+                         incoming().createdByUid == existing().createdByUid &&
+                         incoming().createdAt == existing().createdAt &&
+                         incoming().diff(existing()).affectedKeys().hasOnly(['verificationStatus', 'verifiedByUsername', 'note', 'memberUids', 'actorUid', 'actorEmail', 'updatedAt']);
+        allow delete: if isSignedIn() && isValidId(workspaceId) && isValidId(eventId) && (existing().ownerId == request.auth.uid || isRootAdmin());
+      }
+    }
+  }
+}
